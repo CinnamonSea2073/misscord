@@ -322,7 +322,7 @@ class MisskeyCog(commands.Cog):
         user_data = user_data[0]
         mk = Misskey(user_data.instance)
         mk.token = user_data.api_key
-        data = mk.notes_create(text=text, cw=is_content_warning, local_only=is_local_only)
+        data = mk.notes_create(text=text, cw=is_content_warning, local_only=is_local_only, visibility='public')
         post_id = data["createdNote"]["id"]
         profile = mk.i()
         embed = discord.Embed(title=f"{profile['name']} さんのプロフィール", description='@'+profile['username']+'@'+user_data.instance)
