@@ -1,0 +1,40 @@
+version: "3.8"
+
+services:
+  bot:
+    build: ./bot
+    volumes:
+      - ./bot:/usr/src/bot:rw
+    environment:
+      # bot token
+      - TOKEN=${TOKEN}
+      # TimeZone
+      - TZ=Asia/Tokyo
+    env_file:
+      - db.env
+    tty: true
+    depends_on:
+      - db
+    command: [ "python3", "main.py" ]
+    restart: always
+    networks:
+      - default
+
+  db:
+    image: postgres:15.2-alpine3.17
+    hostname: ${DBHOSTNAME}
+    volumes:
+      - ./db:/var/lib/postgresql/data
+      - ./init/db:/docker-entrypoint-initdb.d
+    environment:
+      - TZ=Asia/Tokyo
+    env_file:
+      - db.env
+    restart: always
+    ports:
+      - '5433:5433'
+    networks:
+      - default
+
+networks:
+  default:
