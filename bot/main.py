@@ -48,6 +48,7 @@ bot.load_extensions(
     'cogs.command',
     'cogs.setting',
     'cogs.register',
+    'cogs.timeline',
     store=False
 )
 

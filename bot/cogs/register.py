@@ -5,6 +5,8 @@ from discord import Option, SlashCommandGroup
 import aiohttp
 import lib.sql as SQL
 from misskey import Misskey
+import requests
+import uuid
 
 l: list[discord.SelectOption] = []
 
@@ -35,7 +37,8 @@ class UidModal(discord.ui.Modal):
         try:
             mk = Misskey(self.instance.value, i=self.api_key.value)
             profile = mk.i()
-            await uid_set(self.ctx, self.api_key.value, self.instance.value, profile['name'])
+            print(profile)
+            await uid_set(self.ctx, self.api_key.value, self.instance.value, profile['username'])
         except Exception as e:
             print(e)
             await interaction.edit_original_message(content=f"えらー！", embed=None, view=None)
@@ -47,13 +50,69 @@ class UidModal(discord.ui.Modal):
 
 class UidModalButton(discord.ui.Button):
     def __init__(self, ctx):
-        super().__init__(label="データを登録する", style=discord.ButtonStyle.green)
+        super().__init__(label="APIKeyから登録する", style=discord.ButtonStyle.green)
         self.ctx = ctx
 
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.send_modal(UidModal(self.ctx))
         print(
             f"==========\n実行者:{interaction.user.name}\n鯖名:{interaction.guild.name}\ncontrole - UIDモーダル表示")
+
+# MiAauthのモーダルを表示させるボタン
+
+
+class MiAuthModalButton(discord.ui.Button):
+    def __init__(self, ctx):
+        super().__init__(label="ブラウザから登録する", style=discord.ButtonStyle.green)
+        self.ctx = ctx
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.send_modal(modal=MiAuthModal(self.ctx))
+
+# MiAuthのモーダル
+class MiAuthModal(discord.ui.Modal):
+    def __init__(self, ctx):
+        super().__init__(title="インスタンスの入力")
+        self.ctx = ctx
+
+        self.instance = discord.ui.InputText(
+            label="インスタンスを入力してください。",
+            style=discord.InputTextStyle.short,
+            placeholder="example.com",
+            required=True,
+        )
+        self.add_item(self.instance)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        user_miauth_id = uuid.uuid4()
+        print(user_miauth_id)
+        url=f"[miAuth](https://{self.instance.value}/miauth/{user_miauth_id}?name=misscord&icon=https://cdn.discordapp.com/attachments/1140183778959036518/1140184159491477545/misscord_icon.png&permission=read:account,\write:account,read:blocks,write:blocks,read:drive,write:drive,read:favorites,write:favorites,read:following,write:following,read:messaging,write:messaging,read:mutes,write:mutes,write:notes,read:notifications,write:notifications,write:reactions,write:votes,read:pages,write:pages,write:page-likes,read:page-likes,write:gallery-likes,read:gallery-likes)"
+        embed = discord.Embed(title="MiAuthを使った登録", description="MiAuthは、APIキーを自動で作成する公式の仕組みです。misskeyにアクセスしてユーザーを登録します。")
+        embed.add_field(name="手順1", value=f"以下のURLからmisskeyにアクセス\n{url}")
+        embed.add_field(name="手順2", value="misskeyの指示に従ったあと、ボタンを押して登録")
+        embed.set_footer(text="misskeyのサイトにアクセスできない場合、インスタンスが間違っている可能性があります。その場合、やり直してください。")
+        view = View()
+        view.add_item(MiAuthRegisterButton(ctx=self.ctx, instance=self.instance.value, user_miauth_id=user_miauth_id))
+        await interaction.response.edit_message(content=None, embed=embed, view=view)
+
+class MiAuthRegisterButton(discord.ui.Button):
+    def __init__(self, ctx, instance, user_miauth_id):
+        super().__init__(label="登録する", style=discord.ButtonStyle.green)
+        self.ctx = ctx
+        self.instance = instance
+        self.user_miauth_id = user_miauth_id
+
+    async def callback(self, interaction: discord.Interaction):
+        try:
+            data = requests.post(f'https://{self.instance}/api/miauth/{self.user_miauth_id}/check').json()
+            mk = Misskey(self.instance, i=data["token"])
+            profile = mk.i()
+            print(profile)
+            await uid_set(self.ctx, data["token"], self.instance, profile['username'])
+            await interaction.response.edit_message(content="登録しました！", embed=None, view=None)
+        except Exception as e:
+            print(e)
+            await interaction.response.edit_message(content="エラーが発生しました。もう一度やり直してください。")
 
 # 本当にUIDを削除するかどうか聞くボタン
 
@@ -144,7 +203,8 @@ class userListCog(commands.Cog):
                 view = View(timeout=300, disable_on_timeout=True)
                 button = UidModalButton(ctx)
                 view.add_item(button)
-                await ctx.respond(content="データが登録されていません。下のボタンから登録してください。", view=view, ephemeral=SQL.Ephemeral.is_ephemeral(ctx.guild_id))
+                view.add_item(MiAuthModalButton(ctx=ctx))
+                await ctx.respond(content="データが登録されていません。下のボタンから登録してください。", view=view, ephemeral=True)
                 return
             for v in userData:
                 select_options.append(
@@ -152,12 +212,14 @@ class userListCog(commands.Cog):
             view = View(timeout=300, disable_on_timeout=True)
             view.add_item(select_user_pulldown(ctx, select_options, userData))
             view.add_item(UidModalButton(ctx))
-            await ctx.respond(embed=embed, view=view, ephemeral=SQL.Ephemeral.is_ephemeral(ctx.guild_id))
+            view.add_item(MiAuthModalButton(ctx=ctx))
+            await ctx.respond(embed=embed, view=view, ephemeral=True)
         except:
             view = View()
             button = UidModalButton(ctx)
             view.add_item(button)
-            await ctx.respond(content="ユーザーが登録されていません。下のボタンから登録してください。", view=view, ephemeral=SQL.Ephemeral.is_ephemeral(ctx.guild_id))
+            view.add_item(MiAuthModalButton(ctx=ctx))
+            await ctx.respond(content="ユーザーが登録されていません。下のボタンから登録してください。", view=view, ephemeral=True)
             return
 
 

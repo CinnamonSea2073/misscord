@@ -206,16 +206,71 @@ class channel:
         self.guilt_id = guilt_id
         self.channel_id = channel_id
 
-    def get_channel(guild_id):
-        # sqlでデータとってくるやつ
-        print(guild_id)
-        result = database.load_data_sql(execute="""
-        select *
-        from server_table
-        where serverid = %s""", data=(guild_id,))
-        print(result)
-        data: list[channel] = [
-            channel(guilt_id=v[0], channel_id=v[1])
-            for v in result
-        ]
-        return data
+    def set_channel(guild_id: int, channel_id: int, instance_address: str, api_key: str) -> None:
+        database.table_update_sql(
+            sql="""
+            INSERT INTO channel_table (guild_id, channel_id, instance_address, api_key)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (guild_id)
+            DO UPDATE SET channel_id = %s
+            """,
+            data=(guild_id, channel_id, instance_address, api_key, channel_id,),
+        )
+
+    def get_channel(guild_id: int) -> tuple[int,str,str]:
+        """通知チャンネルがそのギルドで登録されているかをチェックします
+        Args:
+            guild_id (int): GUILD ID
+
+        Raises:
+            ValueError: データベースに登録されていない場合エラーをraiseします
+
+        Returns:
+            int: channel_idを返します
+        """
+        result = database.load_data_sql(
+            sql="""
+            select channel_id, api_key, instance_address from channel_table where guild_id = %s
+            """,
+            data=(guild_id,),
+        )
+        if len(result) == 0:
+            raise ValueError("channel not found")
+        return (result[0][0], result[0][1], result[0][2])
+    
+class notes:
+    def __init__(self, guilt_id: int, notes_id: int):
+        self.guilt_id = guilt_id
+        self.notes_id = notes_id
+
+    def set_notes_channel(guild_id: int, notes_id: int) -> None:
+        database.table_update_sql(
+            sql="""
+            INSERT INTO notes_table (guild_id, notes_id)
+            VALUES (%s, %s)
+            ON CONFLICT (guild_id)
+            DO UPDATE SET notes_id = %s
+            """,
+            data=(guild_id, notes_id, notes_id,),
+        )
+
+    def get_notes_channel(guild_id: int) -> int:
+        """最終ノートがそのギルドで登録されているかをチェックします
+        Args:
+            guild_id (int): GUILD ID
+
+        Raises:
+            ValueError: データベースに登録されていない場合エラーをraiseします
+
+        Returns:
+            int: notes_idを返します
+        """
+        result = database.load_data_sql(
+            sql="""
+            select notes_id from notes_table where guild_id = %s
+            """,
+            data=(guild_id,),
+        )
+        if len(result) == 0:
+            raise ValueError("channel not found")
+        return result[0][0]

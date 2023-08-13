@@ -6,6 +6,7 @@ import datetime
 import main
 from misskey import Misskey
 import lib.sql as sql
+import requests
 
 l: list[discord.SelectOption] = []
 SELECT_CONTENT_WARNING = [
@@ -19,104 +20,43 @@ SELECT_LOCAL_ONLY = [
 
 class helpselectView(View):
     @discord.ui.select(
-        placeholder="表示するヘルプコマンドを指定してね",
+        placeholder="表示するヘルプコマンド",
         options=[
             discord.SelectOption(
-                    label="メインコマンド",
+                    label="misskeyコマンド",
                     emoji="📰",
-                    description="原神ステータスを確認できます。",
+                    description="Misskeuの操作ができます。",
             ),
             discord.SelectOption(
-                label="UIDリストコマンド",
+                label="userコマンド",
                 emoji="📚",
-                description="忘れがちなUIDを保存してくれるコマンドです。"),
-            discord.SelectOption(
-                label="祈願コマンド",
-                emoji="✨",
-                description="いわゆるガチャシミュレーターです。"),
-            discord.SelectOption(
-                label="便利コマンド",
-                emoji="🧰",
-                description="今日の日替わり秘境など"),
-            discord.SelectOption(
-                label="聖遺物スコア計算コマンド",
-                emoji="🧮",
-                description="スコアを簡単に計算します"),
-            discord.SelectOption(
-                label="通知コマンド",
-                emoji="📢",
-                description="樹脂などが溢れる前に通知します"),
+                description="登録したユーザー情報を操作するコマンドです。"),
             discord.SelectOption(
                 label="設定コマンド",
                 emoji="⚙",
-                description="通知チャンネルなどを設定します"),
+                description="Ephemeral等を設定します"),
         ])
     async def select_callback(self, select: discord.ui.Select, interaction):
         embed = discord.Embed(
             title=f"helpコマンド：{select.values[0]}", color=0x1e90ff)
-        if select.values[0] == "メインコマンド":
-            print(
-                f"help - メインコマンド\n実行者:{interaction.user.name}\n鯖名:{interaction.guild.name}")
+        if select.values[0] == "Misskeyコマンド":
             embed.add_field(
-                name=f"このbotのメインとなるコマンドです。",
+                name=f"misskeyを操作するコマンドです。",
                 value=f"\
-                    \n**・/genshinstat get**\n自分以外が見ることができない状態で原神のステータスを取得します。UIDリスト機能で、自分のUIDを登録しておくと簡単に使えます。原神の設定でキャラ詳細を公開にすると、キャラステータスも確認できます。\
+                    \n**・/misskey profile**\nプロフィールを取得して表示します。\
+                    \n**・/misskey post**\nテキストを投稿します。\
                 ")
-        elif select.values[0] == "UIDリストコマンド":
-            print(
-                f"help - UIDリストコマンド\n実行者:{interaction.user.name}\n鯖名:{interaction.guild.name}")
+        elif select.values[0] == "userコマンド":
             embed.add_field(
-                name=f"いちいち確認するのが面倒なUIDを管理するコマンドです。",
+                name=f"登録しているmisskeyアカウントを管理するコマンドです。",
                 value=f"\
-                    \n**・/uidlist get**\n登録され、公開設定が「公開」になっているUIDがここに表示されます。\
-                    \n**・/uidlist control**\n登録したUIDを管理するパネルを表示します。UIDの登録や削除、公開設定の切り替えもここからできます。\
-                ")
-        elif select.values[0] == "祈願コマンド":
-            print(
-                f"help - 祈願コマンド\n実行者:{interaction.user.name}\n鯖名:{interaction.guild.name}")
-            embed.add_field(
-                name=f"いわゆるガチャシミュレーターです。天井もユーザーごとにカウントされています。",
-                value=f"\
-                    \n**・/wish character**\n原神のガチャ排出時に表示されるイラストを検索します。\
-                    \n**・/wish get**\n原神のガチャを引きます。\
-                    "
-            )
-        elif select.values[0] == "便利コマンド":
-            print(
-                f"help - 便利コマンド\n実行者:{interaction.user.name}\n鯖名:{interaction.guild.name}")
-            embed.add_field(
-                name=f"botを活用する上で覚えておきたいコマンドたちです。",
-                value=f"\
-                    \n**・/genbot help**\n迷ったらこちらから確認しよう。\
-                    \n**・/genbot today**\n今日の日替わり秘境（天賦本や武器突破素材）や、デイリー更新まであと何分？を表示！\
-                    \n**・/genbot report**\nバグ・不具合報告はこちらからよろしくお願いいたします...\
-                    \n**・/genbot event**\n原神のイベントを確認できます。\
-                    \n**・/genbot code**\nワンボタンで原神報酬コードを使いたい方にどうぞっ！\
-                ")
-        elif select.values[0] == "聖遺物スコア計算コマンド":
-            print(
-                f"help - 聖遺物スコア計算コマンド\n実行者:{interaction.user.name}\n鯖名:{interaction.guild.name}")
-            embed.add_field(
-                name=f"聖遺物スコア計算を簡単にしてくれるコマンドです。",
-                value=f"\
-                    \n**・/artifact get**\n会心率基準で簡単に計算してくれます。数値はコマンド実行時に入力します。\
-                    \n**・/artifact get_detail**\nHP基準や防御力基準など、より詳細に設定して計算します。\
-                ")
-        elif select.values[0] == "通知コマンド":
-            print(
-                f"help - 通知コマンド\n実行者:{interaction.user.name}\n鯖名:{interaction.guild.name}")
-            embed.add_field(
-                name=f"樹脂が溢れないように通知してくれるコマンドです。",
-                value=f"\
-                    \n**・/notification resin**\n現在の樹脂量を入力することで、溢れる前に通知します。\
+                    \n**・/user controle**\n登録しているmisskeyアカウントを管理します。\
                 ")
         elif select.values[0] == "設定コマンド":
-            print(
-                f"help - 設定コマンド\n実行者:{interaction.user.name}\n鯖名:{interaction.guild.name}")
             embed.add_field(
-                name=f"通知チャンネルなどを設定するコマンドです。",
+                name=f"Ephemeralなどを設定するコマンドです。",
                 value=f"\
-                    \n**・/setting channel**\n樹脂通知をするチャンネルを設定します。\
+                    \n**・/setting ephemeral**\nコマンド使用履歴を確認できるようにするか設定します。\
                 ")
         await interaction.response.edit_message(content=None, embed=embed, view=self)
 
@@ -172,26 +112,14 @@ class bugselectView(View):
         placeholder="どのコマンドで不具合が出ましたか？",
         options=[
             discord.SelectOption(
-                    label="/genbot",
-                    description="help、today等",),
+                    label="/misskey",
+                    description="help, profile等",),
             discord.SelectOption(
-                label="/uidlist",
-                description="get、controle等",),
-            discord.SelectOption(
-                label="/genshinstat",
-                description="get等"),
-            discord.SelectOption(
-                label="/wish",
-                description="get、get_n等"),
+                label="/user",
+                description="controle等",),
             discord.SelectOption(
                 label="/setting",
-                description="channel等"),
-            discord.SelectOption(
-                label="/artifact",
-                description="get等"),
-            discord.SelectOption(
-                label="/notification",
-                description="resin等"),
+                description="ephemeral等"),
         ])
     async def select_callback(self, select: discord.ui.Select, interaction):
         print(str(select.values[0]))
@@ -215,12 +143,12 @@ class ReplayModal(discord.ui.Modal):
         user_data = sql.User.get_user_list(user_id=interaction.user.id)
         user_data = user_data[0]
         mk = Misskey(user_data.instance, i=user_data.api_key)
-        data = mk.notes_create(text=self.text, reply_id=self.post_id)
+        data = mk.notes_create(text=self.text.value, reply_id=self.post_id)
         post_id = data["createdNote"]["id"]
         profile = mk.i()
         embed = discord.Embed(title=f"Replay @{self.post_user_name} by {profile['name']}", description='@'+profile['username']+'@'+user_data.instance)
         embed.set_thumbnail(url=profile['avatarUrl'])
-        embed.add_field(name="投稿内容", value=self.text)
+        embed.add_field(name="投稿内容", value=self.text.value)
         view = ActionButtontView(post_id=post_id, post_user_name=profile['name'])
         await interaction.response.send_message(embed=embed, view=view, ephemeral=sql.Ephemeral.is_ephemeral(interaction.guild_id))
 
@@ -232,6 +160,7 @@ class RepostModal(discord.ui.Modal):
 
         self.text = discord.ui.InputText(
             label="リポストテキストを入力してね（必須ではありません）",
+            required=False,
             style=discord.InputTextStyle.short,
         )
         self.add_item(self.text)
@@ -241,15 +170,59 @@ class RepostModal(discord.ui.Modal):
         user_data = sql.User.get_user_list(user_id=interaction.user.id)
         user_data = user_data[0]
         mk = Misskey(user_data.instance, i=user_data.api_key)
-        data = mk.notes_create(text=self.text, repost_id=self.post_id)
+        try:
+            data = mk.notes_create(text=self.text.value, renote_id=self.post_id)
+        except:
+            data = mk.notes_create(text=None, renote_id=self.post_id)
         post_id = data["createdNote"]["id"]
         profile = mk.i()
         embed = discord.Embed(title=f"Repost @{self.post_user_name} by {profile['name']}", description='@'+profile['username']+'@'+user_data.instance)
         embed.set_thumbnail(url=profile['avatarUrl'])
         if self.text:
-            embed.add_field(name="投稿内容", value=self.text)
+            embed.add_field(name="投稿内容", value=self.text.value)
         view = ActionButtontView(post_id=post_id, post_user_name=profile['name'])
         await interaction.response.send_message(embed=embed, view=view, ephemeral=sql.Ephemeral.is_ephemeral(interaction.guild_id))
+
+class ReactionModal(discord.ui.Modal):
+    def __init__(self, post_id, post_user_name):
+        super().__init__(title="リアクション")
+        self.post_id = post_id
+        self.post_user_name = post_user_name
+
+        self.text = discord.ui.InputText(
+            label="絵文字、またはコロンで囲まれたカスタム絵文字名を入力",
+            style=discord.InputTextStyle.short,
+        )
+        self.add_item(self.text)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        print(self.text)
+        user_data = sql.User.get_user_list(user_id=interaction.user.id)
+        user_data = user_data[0]
+        mk = Misskey(user_data.instance, i=user_data.api_key)
+        view = View()
+        view.add_item(ReactionCancelButton(self.post_id))
+        try:
+            data = mk.notes_reactions_create(note_id=self.post_id, reaction=self.text.value)
+            await interaction.response.send_message(content="リアクションしました", view=view, ephemeral=True)
+        except:
+            await interaction.response.send_message(content="エラーが発生しました。二つの絵文字が入力されたか、すでにリアクション済の可能性があります。", view=view, ephemeral=True)
+
+class ReactionCancelButton(discord.ui.Button):
+    def __init__(self, post_id):
+        super().__init__(label="リアクションを取り消す", style=discord.ButtonStyle.green)
+        self.post_id = post_id
+
+    async def callback(self, interaction: discord.Interaction):
+        user_data = sql.User.get_user_list(user_id=interaction.user.id)
+        if user_data == []:
+            embed = discord.Embed(title=f"<@{interaction.user.id}> 事前にユーザーを登録してください。")
+            await interaction.response.send_message(embed=embed, ephemeral=sql.Ephemeral.is_ephemeral(interaction.guild_id))
+            return
+        mk = Misskey(user_data[0].instance)
+        mk.token = user_data[0].api_key
+        mk.notes_reactions_delete(self.post_id)
+        await interaction.response.edit_message(content="リアクションを取り消しました。")
 
 class ActionButtontView(View):
     def __init__(self, post_id, post_user_name):
@@ -257,7 +230,7 @@ class ActionButtontView(View):
         self.post_id = post_id
         self.post_user_name = post_user_name
 
-    @discord.ui.button(emoji="↩")
+    @discord.ui.button(emoji="<:replay:1140262214343868436>")
     async def replay(self, _: discord.ui.Button, interaction: discord.Interaction):
         user_data = sql.User.get_user_list(user_id=interaction.user.id)
         if user_data == []:
@@ -266,14 +239,53 @@ class ActionButtontView(View):
             return
         await interaction.response.send_modal(ReplayModal(post_id=self.post_id, post_user_name=self.post_user_name))
     
-    @discord.ui.button(emoji="🔄")
-    async def nextday(self, _: discord.ui.Button, interaction: discord.Interaction):
+    @discord.ui.button(emoji="<:Repost:1140262236900818984>")
+    async def renote(self, _: discord.ui.Button, interaction: discord.Interaction):
         user_data = sql.User.get_user_list(user_id=interaction.user.id)
         if user_data == []:
             embed = discord.Embed(title=f"<@{interaction.user.id}> 事前にユーザーを登録してください。")
             await interaction.response.send_message(embed=embed, ephemeral=sql.Ephemeral.is_ephemeral(interaction.guild_id))
             return
         await interaction.response.send_modal(RepostModal(post_id=self.post_id, post_user_name=self.post_user_name))
+
+    @discord.ui.button(emoji="<:Plus:1140262257234804816>")
+    async def reaction(self, _: discord.ui.Button, interaction: discord.Interaction):
+        user_data = sql.User.get_user_list(user_id=interaction.user.id)
+        if user_data == []:
+            embed = discord.Embed(title=f"<@{interaction.user.id}> 事前にユーザーを登録してください。")
+            await interaction.response.send_message(embed=embed, ephemeral=sql.Ephemeral.is_ephemeral(interaction.guild_id))
+            return
+        await interaction.response.send_modal(ReactionModal(post_id=self.post_id, post_user_name=self.post_user_name))
+
+    @discord.ui.button(emoji="<:Heart:1140262284925612073>")
+    async def favorites(self, _: discord.ui.Button, interaction: discord.Interaction):
+        user_data = sql.User.get_user_list(user_id=interaction.user.id)
+        if user_data == []:
+            embed = discord.Embed(title=f"<@{interaction.user.id}> 事前にユーザーを登録してください。")
+            await interaction.response.send_message(embed=embed, ephemeral=sql.Ephemeral.is_ephemeral(interaction.guild_id))
+            return
+        mk = Misskey(user_data[0].instance)
+        mk.token = user_data[0].api_key
+        mk.notes_favorites_create(self.post_id)
+        view = View()
+        view.add_item(FavoritesCancelButton(self.post_id))
+        await interaction.response.send_message(content="お気に入り登録しました。", ephemeral=True, view=view)
+
+class FavoritesCancelButton(discord.ui.Button):
+    def __init__(self, post_id):
+        super().__init__(label="お気に入りを取り消す", style=discord.ButtonStyle.green)
+        self.post_id = post_id
+
+    async def callback(self, interaction: discord.Interaction):
+        user_data = sql.User.get_user_list(user_id=interaction.user.id)
+        if user_data == []:
+            embed = discord.Embed(title=f"<@{interaction.user.id}> 事前にユーザーを登録してください。")
+            await interaction.response.send_message(embed=embed, ephemeral=sql.Ephemeral.is_ephemeral(interaction.guild_id))
+            return
+        mk = Misskey(user_data[0].instance)
+        mk.token = user_data[0].api_key
+        mk.notes_favorites_delete(self.post_id)
+        await interaction.response.edit_message(content="お気に入りを取り消しました。")
 
 class MisskeyCog(commands.Cog):
 
@@ -282,6 +294,25 @@ class MisskeyCog(commands.Cog):
         self.bot = bot
 
     misskey = SlashCommandGroup('misskey', 'test')
+    
+    @misskey.command(name='help', description='Misscordのヘルプです。')
+    async def chelp(self, ctx):
+        embed = discord.Embed(title=f"helpコマンド：misskeyコマンド", color=0x1e90ff)
+        embed.add_field(
+            name=f"misskeyを操作するコマンドです。",
+            value=f"\
+                \n**・/misskey profile**\nプロフィールを取得して表示します。\
+                \n**・/misskey post**\nテキストを投稿します。\
+            ")
+        view = helpselectView(timeout=300, disable_on_timeout=True)
+        # レスポンスで定義したボタンを返す
+        await ctx.respond("確認したいコマンドのジャンルを選択してください", embed=embed, view=view, ephemeral=sql.Ephemeral.is_ephemeral(ctx.guild.id))
+
+    @misskey.command(name='report', description='不具合報告はこちらから！')
+    async def report(self, ctx):
+
+        view = bugselectView()
+        await ctx.respond(view=view, ephemeral=sql.Ephemeral.is_ephemeral(ctx.guild.id))
 
     @misskey.command(name='profile', description='プロフィール')
     async def code(
@@ -294,13 +325,12 @@ class MisskeyCog(commands.Cog):
             embed = discord.Embed(title=f"エラー・事前にユーザーを登録してください。")
             await ctx.respond(embed=embed, ephemeral=sql.Ephemeral.is_ephemeral(ctx.guild_id))
 
+        print(user_data)
         user_data = user_data[0]
         mk = Misskey(user_data.instance)
         mk.token = user_data.api_key
-        print(mk.i())
         profile = mk.i()
         embed = discord.Embed(title=f"{profile['name']} さんのプロフィール", description='@'+profile['username']+'@'+user_data.instance)
-        print(profile['avatarUrl'])
         embed.set_thumbnail(url=profile['avatarUrl'])
         embed.add_field(name="ステータス", value=profile['onlineStatus'])
         await ctx.respond(embed=embed, ephemeral=sql.Ephemeral.is_ephemeral(ctx.guild_id))
@@ -322,13 +352,22 @@ class MisskeyCog(commands.Cog):
         user_data = user_data[0]
         mk = Misskey(user_data.instance)
         mk.token = user_data.api_key
-        data = mk.notes_create(text=text, cw=is_content_warning, local_only=is_local_only, visibility='public')
+        """
+        data = requests.post(
+            f'http://{user_data.instance}/api/notes/create', 
+            json={
+                'visibility': 'public',
+                'visibleUserIds': [],
+                'text': text,
+                'localOnly': is_local_only,
+            })
+        """
+        data = mk.notes_create(text=text, visibility='public', local_only=is_local_only)
         post_id = data["createdNote"]["id"]
         profile = mk.i()
-        embed = discord.Embed(title=f"{profile['name']} さんのプロフィール", description='@'+profile['username']+'@'+user_data.instance)
+        embed = discord.Embed(title=f"@{profile['username']}", description=text)
         embed.set_thumbnail(url=profile['avatarUrl'])
-        embed.add_field(name="投稿内容", value=text)
-        view = ActionButtontView(post_id=post_id, post_user_name=profile['name'])
+        view = ActionButtontView(post_id=post_id, post_user_name=profile['username'])
         await ctx.respond(embed=embed, view=view, ephemeral=sql.Ephemeral.is_ephemeral(ctx.guild_id))
 
 def setup(bot):
