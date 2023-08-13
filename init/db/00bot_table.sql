@@ -1,11 +1,10 @@
--- public.notes_table definition
+-- public.bot_table definition
 
 -- Drop table
 
--- DROP TABLE public.notes_table;
+-- DROP TABLE public.bot_table;
 
-CREATE TABLE public.notes_table (
-	guild_id int8 NOT NULL,
-	notes_id varchar NOT NULL,
-	CONSTRAINT notes_table_pk PRIMARY KEY (guild_id)
+CREATE TABLE public.bot_table (
+	serverid int8 NOT NULL,
+	CONSTRAINT bot_table_pkey PRIMARY KEY (serverid)
 );
